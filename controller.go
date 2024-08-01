@@ -14,41 +14,45 @@ import (
 func processReceiptController(c *gin.Context) {
 	var receipt Receipt
 
-	// reading receipt and error handling
+	// read receipt
 	if err := c.ShouldBindJSON(&receipt); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad request"})
 		return
 	}
 
-	// Validating receipt fields and error handling
+	// Validate receipt fields
 	if err := ValidateReceipt(receipt); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Generating a new unique id for the receipt
+	// Generate a new unique id for the receipt
 	id := uuid.New().String()
+
+    // Marshal the receipt into JSON
 	receiptJSON, err := json.Marshal(receipt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	err = redisClient.Set(ctx, id, receiptJSON, 0).Err()
+	// Store the receipt JSON in Redis with the generated UUID as the key
+    err = redisClient.Set(ctx, id, receiptJSON, 0).Err()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store receipt"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"id": id})
+	// Return the generated UUID in the response
+    c.JSON(http.StatusOK, gin.H{"id": id})
 }
 
 // Controller to get points for a receipt
 func getPointsController(c *gin.Context) {
-	// Parsing id from the end point
+	// Get the receipt ID from the URL parameter
 	id := c.Param("id")
 
-	// checking if we have the id in our In-memeory receipts map
+	// Retrieve the receipt JSON from Redis using the ID
 	receiptJSON, err := redisClient.Get(ctx, id).Result()
 	if err == redis.Nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Receipt not found"})
@@ -57,15 +61,20 @@ func getPointsController(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve receipt"})
 		return
 	}
+
 	var receipt Receipt
+
+    // Unmarshal the JSON back into the receipt variable
 	err = json.Unmarshal([]byte(receiptJSON), &receipt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	// Calculating points based on the receipt
+	// Calculate points based on the receipt
 	points := calculatePoints(receipt)
 
+    // Return the points as the response
 	c.JSON(http.StatusOK, gin.H{"points": points})
 }
+
