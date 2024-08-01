@@ -44,5 +44,5 @@ This is a Go application that processes receipts and calculates points based on 
 2. **Run the application**:
 
     ```sh
-    go run main.go
+    go run main.go controller.go calculation.go models.go validation.go
     ```
