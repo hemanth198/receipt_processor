@@ -24,7 +24,7 @@ This is a Go application that processes receipts and calculates points based on 
 1. **Build the Docker image**:
 
     ```sh
-    docker build -t receipt-processor .
+    docker build -t receipt-processor -f docker .
     ```
 
 2. **Run the Docker container**:
